@@ -986,7 +986,7 @@ try {
     Write-Log 'WinGet source update' -Tag 'Run'
     & $wingetExe source update 2>&1 | Out-Null
 
-    Write-Log "List installed: $appId" -Tag 'Run'
+    Write-Log "List installed: $appId" -Tag 'Debug'
     $previousEncoding = [Console]::OutputEncoding
     [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
     try {

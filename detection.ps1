@@ -370,7 +370,7 @@ try {
         Complete-Script -exitCode 0
     }
 
-    Write-Log "List installed: $appId" -Tag 'Run'
+    Write-Log "List installed: $appId" -Tag 'Debug'
     $previousEncoding = [Console]::OutputEncoding
     [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
     try {
