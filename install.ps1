@@ -424,7 +424,9 @@ function ConvertFrom-WingetUpgradeOutput {
 
 function Get-AvailableUpdates {
     [CmdletBinding()]
-    param()
+    param(
+        [string]$forAppId = ''
+    )
 
     Write-Log 'Upgrades: list (default, user, machine)' -Tag 'Debug'
     $wingetPath = Get-WingetPath
