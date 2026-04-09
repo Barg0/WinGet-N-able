@@ -327,10 +327,10 @@ function Get-AvailableUpdates {
         if (-not [string]::IsNullOrWhiteSpace($forAppId)) {
             $hit = @($updates | Where-Object { $_.AppId -eq $forAppId }) | Select-Object -First 1
             if ($hit) {
-                Write-Log "Upgrade check ($forAppId): $($hit.CurrentVersion) -> $($hit.AvailableVersion)" -Tag 'Get'
+                Write-Log "$($forAppId): $($hit.CurrentVersion) -> $($hit.AvailableVersion)" -Tag 'Info'
             }
             else {
-                Write-Log "Upgrade check ($forAppId): none" -Tag 'Get'
+                Write-Log "$($forAppId): none" -Tag 'Info'
             }
         }
         return , @($updates)

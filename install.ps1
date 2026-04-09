@@ -484,10 +484,10 @@ function Get-AvailableUpdates {
         if (-not [string]::IsNullOrWhiteSpace($forAppId)) {
             $hit = @($updates | Where-Object { $_.AppId -eq $forAppId }) | Select-Object -First 1
             if ($hit) {
-                Write-Log "Upgrade check ($forAppId): $($hit.CurrentVersion) -> $($hit.AvailableVersion)" -Tag 'Get'
+                Write-Log "$($forAppId): $($hit.CurrentVersion) -> $($hit.AvailableVersion)" -Tag 'Info'
             }
             else {
-                Write-Log "Upgrade check ($forAppId): none" -Tag 'Get'
+                Write-Log "$($forAppId): none" -Tag 'Info'
             }
         }
         return , @($updates)
@@ -983,6 +983,9 @@ try {
         Complete-Script -exitCode 0
     }
 
+    Write-Log 'WinGet source update' -Tag 'Run'
+    & $wingetExe source update 2>&1 | Out-Null
+
     Write-Log "List installed: $appId" -Tag 'Run'
     $previousEncoding = [Console]::OutputEncoding
     [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
@@ -1022,7 +1025,7 @@ try {
     }
 
     $pendingRow = $pendingForThisApp | Select-Object -First 1
-    Write-Log "Upgrade: $appId $($pendingRow.CurrentVersion) -> $($pendingRow.AvailableVersion)" -Tag 'Run'
+    Write-Log 'Upgrading' -Tag 'Run'
 
     try {
         $normalizedScopes = Get-WingetScopeLadderOrderNormalized
@@ -1032,9 +1035,6 @@ try {
         Write-Log "Invalid wingetScopeLadderOrder: $_" -Tag 'Error'
         Complete-Script -exitCode 1
     }
-
-    Write-Log 'WinGet source update' -Tag 'Run'
-    & $wingetExe source update 2>&1 | Out-Null
 
     $upgradeOutcome = Update-WinGetPackage -packageId $appId -wingetPath $wingetExe -availableVersion $pendingRow.AvailableVersion
     if ($upgradeOutcome -eq $false) {
