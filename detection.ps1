@@ -174,47 +174,31 @@ function Test-WingetVersion {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$wingetPath)
 
-    $versionOutput = & $wingetPath --version 2>&1
+    $versionOutput = @(& $wingetPath --version 2>&1)
     $exitCode = $LASTEXITCODE
     $versionString = ($versionOutput | Out-String).Trim()
     $isHealthy = ($exitCode -eq 0)
     Write-Log "WinGet --version: exit $exitCode" -Tag 'Debug'
+    if ($isHealthy) {
+        $versionLine = $versionOutput | Where-Object { $_ -and ($_ -match '\d+\.\d+') } | Select-Object -First 1
+        if ($versionLine -and $versionLine -match '(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)') {
+            Write-Log "WinGet: v$($matches[1])" -Tag 'Success'
+        }
+        else {
+            Write-Log 'WinGet' -Tag 'Success'
+        }
+    }
+    else {
+        Write-Log "Winget failed: exit $exitCode" -Tag 'Error'
+        $errorOutput = $versionOutput | Where-Object { $_ -and $_ -notmatch '^\s*$' } | Select-Object -First 3
+        if ($errorOutput) {
+            Write-Log "Details: $($errorOutput -join '; ')" -Tag 'Debug'
+        }
+    }
     return @{
         isHealthy = $isHealthy
         version = $versionString
         exitCode = $exitCode
-    }
-}
-
-function Test-Winget {
-    [CmdletBinding()]
-    param()
-
-    Write-Log 'WinGet check' -Tag 'Debug'
-    try {
-        $wingetPath = Get-WingetPath
-        $rawOutput = & $wingetPath -v 2>&1
-        $exitCode = $LASTEXITCODE
-        if ($exitCode -eq 0) {
-            $versionLine = $rawOutput | Where-Object { $_ -and ($_ -match '\d+\.\d+') } | Select-Object -First 1
-            if ($versionLine -and $versionLine -match '(\d+\.\d+(?:\.\d+)?(?:\.\d+)?)') {
-                Write-Log "WinGet: v$($matches[1])" -Tag 'Success'
-            }
-            else {
-                Write-Log 'WinGet' -Tag 'Success'
-            }
-            return $true
-        }
-        Write-Log "Winget failed: exit $exitCode" -Tag 'Error'
-        $errorOutput = $rawOutput | Where-Object { $_ -and $_ -notmatch '^\s*$' } | Select-Object -First 3
-        if ($errorOutput) {
-            Write-Log "Details: $($errorOutput -join '; ')" -Tag 'Debug'
-        }
-        return $false
-    }
-    catch {
-        Write-Log "Winget test: $_" -Tag 'Error'
-        return $false
     }
 }
 
@@ -283,7 +267,9 @@ function ConvertFrom-WingetUpgradeOutput {
 
 function Get-AvailableUpdates {
     [CmdletBinding()]
-    param()
+    param(
+        [string]$forAppId = ''
+    )
 
     Write-Log 'Upgrades: list (default, user, machine)' -Tag 'Debug'
     $wingetPath = Get-WingetPath
@@ -337,7 +323,16 @@ function Get-AvailableUpdates {
                 [void]$updates.Add($item)
             }
         }
-        Write-Log "Upgrades: $($updates.Count)" -Tag 'Get'
+        Write-Log "Upgrade list (merged): $($updates.Count)" -Tag 'Debug'
+        if (-not [string]::IsNullOrWhiteSpace($forAppId)) {
+            $hit = @($updates | Where-Object { $_.AppId -eq $forAppId }) | Select-Object -First 1
+            if ($hit) {
+                Write-Log "Upgrade check ($forAppId): $($hit.CurrentVersion) -> $($hit.AvailableVersion)" -Tag 'Get'
+            }
+            else {
+                Write-Log "Upgrade check ($forAppId): none" -Tag 'Get'
+            }
+        }
         return , @($updates)
     }
     catch {
@@ -400,12 +395,7 @@ try {
 
     Write-Log "Installed: $appId" -Tag 'Success'
 
-    if (-not (Test-Winget)) {
-        Write-Log 'Winget unavailable.' -Tag 'Error'
-        Complete-Script -exitCode 0
-    }
-
-    $availableUpdates = Get-AvailableUpdates
+    $availableUpdates = Get-AvailableUpdates -forAppId $appId
     $pendingForThisApp = @($availableUpdates | Where-Object { $_.AppId -eq $appId })
     if ($pendingForThisApp.Count -gt 0) {
         $row = $pendingForThisApp | Select-Object -First 1
